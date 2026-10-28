@@ -552,6 +552,7 @@ def build_with_page_numbers(
         if measured == page_map or attempt == 4:
             if measured != page_map:
                 print("  ! 目录页码未收敛，已使用最后一版", file=sys.stderr)
+            out.parent.mkdir(parents=True, exist_ok=True)
             draft.replace(out)
             return pages, measured
         page_map = measured
