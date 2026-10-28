@@ -523,14 +523,18 @@ def write_notes(path: Path, version: str, pdf_name: str) -> None:
         "",
     ]
     for name in CHAPTERS:
+        if name == "README.md":
+            lines.append(f"- 总览：阅读路线、完成标准与入门任务（`{name}`）")
+            continue
         first = (ROOT / name).read_text(encoding="utf-8").splitlines()[0]
         lines.append(f"- {first.lstrip('# ').strip()}（`{name}`）")
     lines += [
         "",
         "## 说明",
         "",
-        "本 PDF 由仓库内的 `scripts/build_handbook.py` 从 Markdown 正文自动编译，",
-        "内容以仓库 `main` 分支为准；发现错漏请按贡献指南提交变更请求。",
+        "A4 排版，含封面、带页码的目录与 PDF 书签，可直接打印，也可在阅读器里按书签跳转。",
+        "内容由仓库内的 `scripts/build_handbook.py` 从 Markdown 正文自动编译，以 `main` 分支为准；",
+        "发现错漏请按贡献指南提交变更请求。",
         "",
     ]
     path.parent.mkdir(parents=True, exist_ok=True)
