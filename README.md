@@ -4,6 +4,8 @@
 
 教程按能力递进组织，涵盖基础工具链、实验环境、协作流程、代码规范与竞赛入门五个板块。
 
+> 需要离线阅读时，可下载各版本编译好的 PDF：[Releases](https://github.com/NingXia-XinQiCyberClub/guide/releases)。
+
 ---
 
 ## 一、阅读路线

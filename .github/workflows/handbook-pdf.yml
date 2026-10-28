@@ -1,0 +1,94 @@
+name: 宁夏大学鑫启网安俱乐部 · 入门手册
+
+# 把本仓库的 Markdown 正文编译成一本 A4 PDF，挂到 GitHub Release 上供成员下载。
+# 编译逻辑在 scripts/build_handbook.py：封面、带页码的目录、页眉页脚、PDF 书签
+# 都由脚本生成，正文只认仓库里的 00~08 章与 README.md。
+#
+# 触发方式：
+#   A. 推送 v* 标签（如 git tag v1.0.0 && git push origin v1.0.0）自动出包并发布
+#   B. 在 Actions 页面手动运行，填写版本号，同样会创建/更新对应 Release
+# 已存在的同名 Release 会被更新（资产覆盖），不会重复新建。
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 版本号，同时作为 Release 的标签
+        required: true
+        default: v1.0.0
+
+permissions:
+  contents: write
+
+concurrency:
+  group: handbook-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TITLE: 宁夏大学鑫启网安俱乐部 · 入门手册
+
+jobs:
+  handbook:
+    name: 编译 PDF 并发布
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.event_name == 'push' && github.ref_name || inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: 安装中文字体与依赖
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk fonts-noto-cjk-extra
+          python -m pip install -q -r scripts/requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: 编译 PDF
+        run: |
+          python scripts/build_handbook.py \
+            --version "$VERSION" \
+            --out "dist/$TITLE-$VERSION.pdf" \
+            --notes dist/release-notes.md
+
+      - name: 校验产物
+        run: |
+          python - <<'PY'
+          import glob, os, pymupdf
+          pdf = glob.glob("dist/*.pdf")[0]
+          doc = pymupdf.open(pdf)
+          print(f"{pdf}: {doc.page_count} 页，{len(doc.get_toc())} 条书签，{os.path.getsize(pdf)//1024} KB")
+          assert doc.page_count >= 20, "页数异常，构建可能失败"
+          assert len(doc.get_toc()) > 20, "书签缺失，目录可能未生成"
+          PY
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: handbook-${{ env.VERSION }}
+          path: |
+            dist/*.pdf
+            dist/release-notes.md
+          retention-days: 14
+
+      - name: 创建或更新 Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release upload "$VERSION" dist/*.pdf --clobber
+            gh release edit "$VERSION" \
+              --title "$TITLE" \
+              --notes-file dist/release-notes.md
+          else
+            gh release create "$VERSION" dist/*.pdf \
+              --title "$TITLE" \
+              --notes-file dist/release-notes.md
+          fi
