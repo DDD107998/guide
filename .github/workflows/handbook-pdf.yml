@@ -53,9 +53,11 @@ jobs:
 
       - name: 编译 PDF
         run: |
+          # 资源名必须是纯 ASCII：GitHub 会把含中文的附件名截成 "-v1.0.0.pdf"，
+          # 纯中文名甚至会被改写为 default.pdf，因此文件名用英文，标题保留中文。
           python scripts/build_handbook.py \
             --version "$VERSION" \
-            --out "dist/$TITLE-$VERSION.pdf" \
+            --out "dist/XinQi-Handbook-$VERSION.pdf" \
             --notes dist/release-notes.md
 
       - name: 校验产物
